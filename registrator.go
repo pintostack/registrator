@@ -28,6 +28,10 @@ var deregister = flag.String("deregister", "always", "Deregister exited services
 var retryAttempts = flag.Int("retry-attempts", 0, "Max retry attempts to establish a connection with the backend. Use -1 for infinite retries")
 var retryInterval = flag.Int("retry-interval", 2000, "Interval (in millisecond) between retry-attempts.")
 var cleanup = flag.Bool("cleanup", false, "Remove dangling services")
+var enableMarathonPorts = flag.Bool("marathon-ports", false, "Enable marathon port names: PORT0, PORT1, ...")
+var serviceNameSingle = flag.String("service-name-single", "{{NAME}}", "Default service name (single port exposed)")
+var serviceNameGroup = flag.String("service-name-group", "{{NAME}}-{{PORT}}", "Default service name (multiple ports exposed)")
+var serviceNameAlias = flag.String("service-name-alias", "", "Default service aliases") // e.g. "{{NAME}}-port{{PORT_INDEX}}"
 
 func getopt(name, def string) string {
 	if env := os.Getenv(name); env != "" {
@@ -96,13 +100,17 @@ func main() {
 	}
 
 	b, err := bridge.New(docker, flag.Arg(0), bridge.Config{
-		HostIp:          *hostIp,
-		Internal:        *internal,
-		ForceTags:       *forceTags,
-		RefreshTtl:      *refreshTtl,
-		RefreshInterval: *refreshInterval,
-		DeregisterCheck: *deregister,
-		Cleanup:         *cleanup,
+		HostIp:                   *hostIp,
+		Internal:                 *internal,
+		ForceTags:                *forceTags,
+		RefreshTtl:               *refreshTtl,
+		RefreshInterval:          *refreshInterval,
+		DeregisterCheck:          *deregister,
+		Cleanup:                  *cleanup,
+		UseMarathonPorts:         *enableMarathonPorts,
+		DefaultSingleServiceName: *serviceNameSingle,
+		DefaultGroupServiceName:  *serviceNameGroup,
+		DefaultServiceNameAlias:  *serviceNameAlias,
 	})
 
 	assert(err)

@@ -223,7 +223,7 @@ func (b *Bridge) add(containerId string, quiet bool) {
 
 func (b *Bridge) newService(port ServicePort, publishedPorts int) *Service {
 	container := port.container
-	defaultName := strings.Split(path.Base(container.Config.Image), ":")[0]
+	serviceName := strings.Split(path.Base(container.Config.Image), ":")[0]
 
 	// not sure about this logic. kind of want to remove it.
 	hostname := Hostname
@@ -241,7 +241,27 @@ func (b *Bridge) newService(port ServicePort, publishedPorts int) *Service {
 		port.HostIP = b.config.HostIp
 	}
 
-	metadata, metadataFromPort := serviceMetaData(container.Config, port.ExposedPort)
+	var portIndex string
+	if b.config.UseMarathonPorts {
+		portIndex = findPortIndex(container.Config.Env, port.HostPort)
+	}
+	env := map[string]string{
+		"{{NAME}}":         serviceName,
+		"{{HOST_PORT}}":    port.HostPort,
+		"{{EXPOSED_PORT}}": port.ExposedPort,
+		"{{PORT}}":         port.HostPort, // alias
+		"{{HOST_IP}}":      port.HostIP,
+		"{{EXPOSED_IP}}":   port.ExposedIP,
+		"{{HOST}}":         port.HostIP, // alias
+		"{{PORT_INDEX}":    portIndex,
+	}
+
+	log.Printf("%s/%s port index: %q", port.ExposedPort, port.HostPort, portIndex)
+	metadata, _ := serviceMetaData(container.Config, port.ExposedPort, portIndex)
+	for k, v := range metadata {
+		metadata[k] = expandString(v, env)
+	}
+	log.Printf("final metadata: %v", metadata)
 
 	ignore := mapDefault(metadata, "ignore", "")
 	if ignore != "" {
@@ -251,10 +271,13 @@ func (b *Bridge) newService(port ServicePort, publishedPorts int) *Service {
 	service := new(Service)
 	service.Origin = port
 	service.ID = hostname + ":" + container.Name[1:] + ":" + port.ExposedPort
-	service.Name = mapDefault(metadata, "name", defaultName)
-	if publishedPorts > 1 && !metadataFromPort["name"] {
-		service.Name += "-" + port.ExposedPort
+	if publishedPorts > 1 {
+		service.Name = expandString(b.config.DefaultSingleServiceName, env)
+	} else {
+		service.Name = expandString(b.config.DefaultGroupServiceName, env)
 	}
+	service.Name = mapDefault(metadata, "name", service.Name)
+
 	var p int
 	if b.config.Internal == true {
 		service.IP = port.ExposedIP
@@ -274,8 +297,7 @@ func (b *Bridge) newService(port ServicePort, publishedPorts int) *Service {
 			mapDefault(metadata, "tags", ""), b.config.ForceTags)
 	}
 
-	id := mapDefault(metadata, "id", "")
-	if id != "" {
+	if id := mapDefault(metadata, "id", ""); id != "" {
 		service.ID = id
 	}
 

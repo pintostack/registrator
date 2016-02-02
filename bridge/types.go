@@ -27,6 +27,11 @@ type Config struct {
 	RefreshInterval int
 	DeregisterCheck string
 	Cleanup         bool
+
+	UseMarathonPorts         bool
+	DefaultSingleServiceName string // {{NAME}}
+	DefaultGroupServiceName  string // {{NAME}}-{{PORT}}
+	DefaultServiceNameAlias  string // {{NAME}}-port{{PORT_INDEX}}
 }
 
 type Service struct {
