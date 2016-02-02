@@ -200,7 +200,7 @@ func (b *Bridge) add(containerId string, quiet bool) {
 			}
 			continue
 		}
-		service := b.newService(port, len(ports) > 1)
+		service := b.newService(port, len(ports))
 		if service == nil {
 			if !quiet {
 				log.Println("ignored:", container.ID[:12], "service on port", port.ExposedPort)
@@ -217,10 +217,10 @@ func (b *Bridge) add(containerId string, quiet bool) {
 	}
 }
 
-func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
+func (b *Bridge) newService(port ServicePort, publishedPorts int) *Service {
 	container := port.container
 	defaultName := strings.Split(path.Base(container.Config.Image), ":")[0]
-	
+
 	// not sure about this logic. kind of want to remove it.
 	hostname := Hostname
 	if hostname == "" {
@@ -248,8 +248,8 @@ func (b *Bridge) newService(port ServicePort, isgroup bool) *Service {
 	service.Origin = port
 	service.ID = hostname + ":" + container.Name[1:] + ":" + port.ExposedPort
 	service.Name = mapDefault(metadata, "name", defaultName)
-	if isgroup && !metadataFromPort["name"] {
-		 service.Name += "-" + port.ExposedPort
+	if publishedPorts > 1 && !metadataFromPort["name"] {
+		service.Name += "-" + port.ExposedPort
 	}
 	var p int
 	if b.config.Internal == true {
