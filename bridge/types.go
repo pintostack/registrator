@@ -28,10 +28,11 @@ type Config struct {
 	DeregisterCheck string
 	Cleanup         bool
 
-	UseMarathonPorts         bool
-	DefaultSingleServiceName string // {{NAME}}
-	DefaultGroupServiceName  string // {{NAME}}-{{PORT}}
-	DefaultServiceNameAlias  string // {{NAME}}-port{{PORT_INDEX}}
+	UseMarathonPorts            bool
+	DefaultSingleServiceName    string // {{NAME}}
+	DefaultGroupServiceName     string // {{NAME}}-{{PORT}}
+	DefaultServiceCheckScript   string // nc -w 5 -z {{HOST}} {{PORT}} >/dev/null
+	DefaultServiceCheckInterval string // 10s
 }
 
 type Service struct {

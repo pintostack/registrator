@@ -253,11 +253,21 @@ func (b *Bridge) newService(port ServicePort, publishedPorts int) *Service {
 		"{{HOST_IP}}":      port.HostIP,
 		"{{EXPOSED_IP}}":   port.ExposedIP,
 		"{{HOST}}":         port.HostIP, // alias
-		"{{PORT_INDEX}":    portIndex,
+		"{{PORT_INDEX}}":   portIndex,
 	}
 
 	log.Printf("%s/%s port index: %q", port.ExposedPort, port.HostPort, portIndex)
 	metadata, _ := serviceMetaData(container.Config, port.ExposedPort, portIndex)
+
+	// support for some defaults
+	if _, ok := metadata["check_script"]; !ok && len(b.config.DefaultServiceCheckScript) != 0 {
+		metadata["check_script"] = b.config.DefaultServiceCheckScript
+	}
+	if _, ok := metadata["check_interval"]; !ok && len(b.config.DefaultServiceCheckInterval) != 0 {
+		metadata["check_interval"] = b.config.DefaultServiceCheckInterval
+	}
+
+	// expand metadata values
 	for k, v := range metadata {
 		metadata[k] = expandString(v, env)
 	}
@@ -272,9 +282,9 @@ func (b *Bridge) newService(port ServicePort, publishedPorts int) *Service {
 	service.Origin = port
 	service.ID = hostname + ":" + container.Name[1:] + ":" + port.ExposedPort
 	if publishedPorts > 1 {
-		service.Name = expandString(b.config.DefaultSingleServiceName, env)
-	} else {
 		service.Name = expandString(b.config.DefaultGroupServiceName, env)
+	} else {
+		service.Name = expandString(b.config.DefaultSingleServiceName, env)
 	}
 	service.Name = mapDefault(metadata, "name", service.Name)
 

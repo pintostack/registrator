@@ -31,7 +31,8 @@ var cleanup = flag.Bool("cleanup", false, "Remove dangling services")
 var enableMarathonPorts = flag.Bool("marathon-ports", false, "Enable marathon port names: PORT0, PORT1, ...")
 var serviceNameSingle = flag.String("service-name-single", "{{NAME}}", "Default service name (single port exposed)")
 var serviceNameGroup = flag.String("service-name-group", "{{NAME}}-{{PORT}}", "Default service name (multiple ports exposed)")
-var serviceNameAlias = flag.String("service-name-alias", "", "Default service aliases") // e.g. "{{NAME}}-port{{PORT_INDEX}}"
+var serviceCheckScript = flag.String("service-check-script", "", "Default service check script") // e.g. "nc -w 5 -z {{HOST}} {{PORT}} >/dev/null"
+var serviceCheckInterval = flag.String("service-check-interval", "10s", "Default service check interval")
 
 func getopt(name, def string) string {
 	if env := os.Getenv(name); env != "" {
@@ -100,17 +101,18 @@ func main() {
 	}
 
 	b, err := bridge.New(docker, flag.Arg(0), bridge.Config{
-		HostIp:                   *hostIp,
-		Internal:                 *internal,
-		ForceTags:                *forceTags,
-		RefreshTtl:               *refreshTtl,
-		RefreshInterval:          *refreshInterval,
-		DeregisterCheck:          *deregister,
-		Cleanup:                  *cleanup,
-		UseMarathonPorts:         *enableMarathonPorts,
-		DefaultSingleServiceName: *serviceNameSingle,
-		DefaultGroupServiceName:  *serviceNameGroup,
-		DefaultServiceNameAlias:  *serviceNameAlias,
+		HostIp:                      *hostIp,
+		Internal:                    *internal,
+		ForceTags:                   *forceTags,
+		RefreshTtl:                  *refreshTtl,
+		RefreshInterval:             *refreshInterval,
+		DeregisterCheck:             *deregister,
+		Cleanup:                     *cleanup,
+		UseMarathonPorts:            *enableMarathonPorts,
+		DefaultSingleServiceName:    *serviceNameSingle,
+		DefaultGroupServiceName:     *serviceNameGroup,
+		DefaultServiceCheckScript:   *serviceCheckScript,
+		DefaultServiceCheckInterval: *serviceCheckInterval,
 	})
 
 	assert(err)
